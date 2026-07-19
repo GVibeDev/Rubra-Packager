@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rubra Packager</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">RP</div>
+        <div>
+          <strong>Rubra Packager</strong>
+          <span>Web game release workshop</span>
+        </div>
+      </div>
+      <nav class="nav" aria-label="Workspace sections">
+        <button class="nav-item active" data-view="projects">Projects</button>
+        <button class="nav-item" data-view="preflight">Preflight</button>
+        <button class="nav-item" data-view="windows">Windows</button>
+        <button class="nav-item" data-view="android">Android</button>
+        <button class="nav-item" data-view="about">About</button>
+      </nav>
+      <div class="sidebar-footer">
+        <span id="connectionDot" class="status-dot"></span>
+        <span id="connectionText">Connecting…</span>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">PROFILE-DRIVEN PACKAGING</p>
+          <h1 id="pageTitle">Projects</h1>
+        </div>
+        <div class="top-actions">
+          <button id="legacyImportButton" class="button ghost">Import legacy registry</button>
+          <button id="newProjectButton" class="button gold">Add project</button>
+        </div>
+      </header>
+
+      <section id="view-projects" class="view active">
+        <div class="panel intro-panel">
+          <div>
+            <h2>Your release shelf</h2>
+            <p>Register a source folder once, then validate and publish it to Windows or Android.</p>
+          </div>
+          <div class="metric"><strong id="projectCount">0</strong><span>registered projects</span></div>
+        </div>
+        <div id="projectGrid" class="project-grid"></div>
+        <div id="emptyProjects" class="empty-state hidden">
+          <div class="empty-symbol">◇</div>
+          <h3>No projects yet</h3>
+          <p>Add an offline web project or import the previous HTML2EXE registry.</p>
+        </div>
+      </section>
+
+      <section id="view-preflight" class="view">
+        <div class="two-column">
+          <div class="panel form-panel">
+            <h2>Package inspection</h2>
+            <label>Project<select id="preflightProject"></select></label>
+            <label>Profile<select id="preflightProfile"></select></label>
+            <label>Variant<select id="preflightVariant"></select></label>
+            <button id="runPreflightButton" class="button gold wide">Run preflight</button>
+          </div>
+          <div class="panel report-panel">
+            <div class="panel-heading">
+              <h2>Report</h2>
+              <span id="preflightBadge" class="badge neutral">Not run</span>
+            </div>
+            <div id="preflightSummary" class="summary-grid"></div>
+            <div id="findingList" class="finding-list"><p class="muted">Run preflight to inspect the selected package.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-windows" class="view">
+        <div class="two-column">
+          <div class="panel form-panel">
+            <h2>Windows executable</h2>
+            <label>Project<select id="windowsProject"></select></label>
+            <label>Application name<input id="windowsName" type="text" autocomplete="off"></label>
+            <div class="split">
+              <label>Profile<select id="windowsProfile"></select></label>
+              <label>Variant<select id="windowsVariant"></select></label>
+            </div>
+            <label class="check-row"><input id="windowsTrust" type="checkbox"><span>Allow npm install/build for this trusted source</span></label>
+            <label>Application icon<input id="windowsIcon" type="file" accept="image/png,image/jpeg,image/webp,image/x-icon,.ico"></label>
+            <button id="buildWindowsButton" class="button gold wide">Build Windows EXE</button>
+          </div>
+          <div class="panel console-panel">
+            <div class="panel-heading"><h2>Build output</h2><button class="button ghost small" data-clear="windowsLog">Clear</button></div>
+            <pre id="windowsLog">Waiting for a Windows build.</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-android" class="view">
+        <div class="two-column">
+          <div class="panel form-panel">
+            <div class="panel-heading"><h2>Android APK</h2><button id="checkAndroidButton" class="button ghost small">Check tools</button></div>
+            <div id="androidPrereqs" class="prereq-row"></div>
+            <label>Project<select id="androidProject"></select></label>
+            <label>Application name<input id="androidName" type="text" autocomplete="off"></label>
+            <label>Package name<input id="androidPackage" type="text" value="com.example.app" autocomplete="off"></label>
+            <div class="split">
+              <label>Profile<select id="androidProfile"></select></label>
+              <label>Variant<select id="androidVariant"></select></label>
+            </div>
+            <label class="check-row"><input id="androidTrust" type="checkbox"><span>Allow npm install/build for this trusted source</span></label>
+            <div class="split icon-row">
+              <label>Launcher icon<input id="androidIcon" type="file" accept="image/png,image/jpeg,image/webp,image/x-icon,.ico"></label>
+              <label>Adaptive background<input id="androidBackground" type="color" value="#071426"></label>
+            </div>
+            <button id="buildAndroidButton" class="button gold wide">Build &amp; verify APK</button>
+          </div>
+          <div class="panel console-panel">
+            <div class="panel-heading"><h2>Build output</h2><button class="button ghost small" data-clear="androidLog">Clear</button></div>
+            <pre id="androidLog">Waiting for an Android build.</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-about" class="view">
+        <div class="panel prose">
+          <p class="eyebrow">INDEPENDENT PUBLIC BASELINE</p>
+          <h2>Rubra Packager RP-R4</h2>
+          <p>This repository focuses on reproducible packaging of trusted offline web games. It uses its own project registry, profile format, interface and modular build engine.</p>
+          <p>The current public scope is deliberately narrow: Windows one-file executables and Android debug APKs. Python-to-EXE, visual templates and broad framework source rewriting are not part of this project.</p>
+          <div class="callout">Only run npm build steps for projects you trust. Package scripts can execute code on your computer.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="projectDialog">
+    <form method="dialog" id="projectForm">
+      <div class="dialog-heading"><h2>Add a project</h2><button value="cancel" class="icon-button" aria-label="Close">×</button></div>
+      <label>Source folder<div class="browse-row"><input id="projectSource" type="text" readonly><button id="browseSourceButton" type="button" class="button ghost">Browse</button></div></label>
+      <div class="split"><label>Project ID<input id="projectId" type="text" required></label><label>Display name<input id="projectName" type="text" required></label></div>
+      <label>Profile<select id="projectProfile"></select></label>
+      <div class="split"><label>Author<input id="projectAuthor" type="text"></label><label>Version<input id="projectVersion" type="text" value="1.0.0"></label></div>
+      <label>Description<textarea id="projectDescription" rows="3"></textarea></label>
+      <div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="saveProjectButton" type="button" class="button gold">Save project</button></div>
+    </form>
+  </dialog>
+
+  <div id="busyLayer" class="busy-layer hidden"><div class="spinner"></div><strong id="busyText">Working…</strong></div>
+  <div id="toast" class="toast hidden"></div>
+  <script>window.RP_SESSION_TOKEN = "__RP_SESSION_TOKEN__";</script>
+  <script src="/app.js"></script>
+</body>
+</html>

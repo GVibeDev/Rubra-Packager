@@ -1,0 +1,24 @@
+{
+  "id": "generic-web-game",
+  "label": "Generic Web Game",
+  "description": "Offline-first HTML game or interactive application.",
+  "entryPoint": "index.html",
+  "orientation": "landscape",
+  "defaultVariant": "full",
+  "requiredPaths": ["index.html"],
+  "manifestCandidates": ["assets-manifest.json", "manifest.json"],
+  "variants": [
+    {
+      "id": "full",
+      "label": "FULL",
+      "description": "Packages all local files except development directories.",
+      "excludeGlobs": []
+    },
+    {
+      "id": "lite",
+      "label": "LITE",
+      "description": "Omits common optional media folders.",
+      "excludeGlobs": ["assets/video/**", "assets/music/**", "media/video/**"]
+    }
+  ]
+}

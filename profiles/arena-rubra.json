@@ -1,0 +1,29 @@
+{
+  "id": "arena-rubra",
+  "label": "Arena Rubra",
+  "description": "Offline tactical web game with large local asset sets.",
+  "entryPoint": "index.html",
+  "orientation": "landscape",
+  "defaultVariant": "full",
+  "requiredPaths": ["index.html"],
+  "manifestCandidates": ["assets-manifest.json", "assets/manifest.json"],
+  "variants": [
+    {
+      "id": "full",
+      "label": "FULL",
+      "description": "Includes the complete offline asset library.",
+      "excludeGlobs": []
+    },
+    {
+      "id": "lite",
+      "label": "LITE",
+      "description": "Experimental reduced package. Referenced exclusions are blocked by preflight.",
+      "excludeGlobs": [
+        "assets/music/**",
+        "assets/audio/music/**",
+        "assets/video/**",
+        "assets/art/highres/**"
+      ]
+    }
+  ]
+}

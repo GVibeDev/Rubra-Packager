@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rubra-packager"
+version = "0.4.3"
+description = "Profile-driven packager for offline web games and HTML applications"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MPL-2.0"
+license-files = ["LICENSE"]
+authors = [
+  {name = "Giovambattista"}
+]
+dependencies = [
+  "pywebview>=5.0",
+  "pyinstaller>=6.10",
+  "Pillow>=10.0"
+]
+
+[project.scripts]
+rubra-packager = "rubra_packager.__main__:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+rubra_packager = ["static/*.html", "static/*.css", "static/*.js", "profiles/*.json"]

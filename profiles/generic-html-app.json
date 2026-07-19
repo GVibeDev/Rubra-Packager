@@ -1,0 +1,18 @@
+{
+  "id": "generic-html-app",
+  "label": "Generic HTML App",
+  "description": "Static HTML/CSS/JavaScript desktop or Android application.",
+  "entryPoint": "index.html",
+  "orientation": "unspecified",
+  "defaultVariant": "full",
+  "requiredPaths": ["index.html"],
+  "manifestCandidates": ["assets-manifest.json"],
+  "variants": [
+    {
+      "id": "full",
+      "label": "FULL",
+      "description": "Packages every local production file.",
+      "excludeGlobs": []
+    }
+  ]
+}

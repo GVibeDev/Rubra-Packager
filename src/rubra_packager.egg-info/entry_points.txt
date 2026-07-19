@@ -1,0 +1,2 @@
+[console_scripts]
+rubra-packager = rubra_packager.__main__:main
