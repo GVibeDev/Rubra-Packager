@@ -10,16 +10,18 @@
   <div class="shell">
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-mark">RP</div>
+        <div class="brand-mark"><img src="/brand-mark.png" alt="" aria-hidden="true"></div>
         <div>
           <strong>Rubra Packager</strong>
-          <span>Web game release workshop</span>
+          <span>Release engineering workshop</span>
         </div>
       </div>
       <nav class="nav" aria-label="Workspace sections">
         <button class="nav-item active" data-view="projects">Projects</button>
-        <button class="nav-item" data-view="preflight">Preflight</button>
-        <button class="nav-item" data-view="windows">Windows</button>
+        <button class="nav-item" data-view="preflight">Web Preflight</button>
+        <button class="nav-item" data-view="windows">Web → Windows</button>
+        <button class="nav-item" data-view="python">Python → Windows</button>
+        <button class="nav-item" data-view="setup">Setup Builder</button>
         <button class="nav-item" data-view="android">Android</button>
         <button class="nav-item" data-view="about">About</button>
       </nav>
@@ -37,7 +39,7 @@
         </div>
         <div class="top-actions">
           <button id="legacyImportButton" class="button ghost">Import legacy registry</button>
-          <button id="newProjectButton" class="button gold">Add project</button>
+          <button id="newProjectButton" class="button gold">Add web project</button>
         </div>
       </header>
 
@@ -45,9 +47,9 @@
         <div class="panel intro-panel">
           <div>
             <h2>Your release shelf</h2>
-            <p>Register a source folder once, then validate and publish it to Windows or Android.</p>
+            <p>Register a trusted web source once, then validate and publish it to Windows or Android.</p>
           </div>
-          <div class="metric"><strong id="projectCount">0</strong><span>registered projects</span></div>
+          <div class="metric"><strong id="projectCount">0</strong><span>registered web projects</span></div>
         </div>
         <div id="projectGrid" class="project-grid"></div>
         <div id="emptyProjects" class="empty-state hidden">
@@ -60,11 +62,11 @@
       <section id="view-preflight" class="view">
         <div class="two-column">
           <div class="panel form-panel">
-            <h2>Package inspection</h2>
+            <h2>Web package inspection</h2>
             <label>Project<select id="preflightProject"></select></label>
             <label>Profile<select id="preflightProfile"></select></label>
             <label>Variant<select id="preflightVariant"></select></label>
-            <button id="runPreflightButton" class="button gold wide">Run preflight</button>
+            <button id="runPreflightButton" class="button gold wide">Run web preflight</button>
           </div>
           <div class="panel report-panel">
             <div class="panel-heading">
@@ -80,7 +82,7 @@
       <section id="view-windows" class="view">
         <div class="two-column">
           <div class="panel form-panel">
-            <h2>Windows executable</h2>
+            <h2>Web application → Windows</h2>
             <label>Project<select id="windowsProject"></select></label>
             <label>Application name<input id="windowsName" type="text" autocomplete="off"></label>
             <div class="split">
@@ -93,7 +95,158 @@
           </div>
           <div class="panel console-panel">
             <div class="panel-heading"><h2>Build output</h2><button class="button ghost small" data-clear="windowsLog">Clear</button></div>
-            <pre id="windowsLog">Waiting for a Windows build.</pre>
+            <pre id="windowsLog">Waiting for a web → Windows build.</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-python" class="view">
+        <div class="two-column">
+          <div class="panel form-panel">
+            <div class="panel-heading"><h2>Python → Windows EXE</h2><button id="checkPythonButton" class="button ghost small">Check tools</button></div>
+            <div id="pythonPrereqs" class="prereq-row python-prereqs"></div>
+
+            <label>Python project folder
+              <div class="browse-row">
+                <input id="pythonRoot" type="text" autocomplete="off" placeholder="Choose a project folder">
+                <button id="browsePythonRootButton" type="button" class="button ghost">Browse</button>
+              </div>
+            </label>
+
+            <label>Entry point
+              <div class="browse-row">
+                <input id="pythonEntry" type="text" autocomplete="off" placeholder="main.py">
+                <button id="browsePythonEntryButton" type="button" class="button ghost">Browse</button>
+              </div>
+            </label>
+
+            <label>Application name<input id="pythonName" type="text" autocomplete="off" placeholder="MyApplication"></label>
+            <div class="split">
+              <label>Version<input id="pythonVersion" type="text" value="1.0.0" autocomplete="off"></label>
+              <label>Publisher<input id="pythonPublisher" type="text" autocomplete="off" placeholder="Publisher / author"></label>
+            </div>
+            <label>Description<input id="pythonDescription" type="text" autocomplete="off" placeholder="Application description"></label>
+
+            <div class="split">
+              <label>Bundle mode
+                <select id="pythonBundleMode">
+                  <option value="onefile">ONEFILE — single executable</option>
+                  <option value="onedir">ONEDIR — portable folder</option>
+                </select>
+              </label>
+              <label>Window mode
+                <select id="pythonWindowMode">
+                  <option value="windowed">Windowed / GUI</option>
+                  <option value="console">Console</option>
+                </select>
+              </label>
+            </div>
+
+            <label>Dependency setup
+              <select id="pythonDependencyMode">
+                <option value="none">None — use current build environment only</option>
+                <option value="requirements">Install requirements.txt into isolated build dependencies</option>
+                <option value="project">Install project metadata into isolated build dependencies</option>
+              </select>
+            </label>
+            <label class="check-row"><input id="pythonTrust" type="checkbox"><span>I trust this source and allow pip/package build code when dependency setup is enabled</span></label>
+
+            <label>Application icon<input id="pythonIcon" type="file" accept="image/png,image/jpeg,image/webp,image/x-icon,.ico"></label>
+            <label>Hidden imports <span class="muted">one module per line or comma-separated</span>
+              <textarea id="pythonHiddenImports" rows="3" placeholder="pkg.submodule"></textarea>
+            </label>
+            <label>Additional data <span class="muted">relative paths, one per line; folder structure is preserved</span>
+              <textarea id="pythonDataPaths" rows="3" placeholder="assets&#10;config/default.json"></textarea>
+            </label>
+            <label>Additional Python search paths <span class="muted">relative directories, one per line</span>
+              <textarea id="pythonSearchPaths" rows="2" placeholder="src"></textarea>
+            </label>
+
+            <div class="split">
+              <button id="runPythonPreflightButton" class="button ghost wide">Run Python preflight</button>
+              <button id="buildPythonButton" class="button gold wide">Build Python EXE</button>
+            </div>
+          </div>
+
+          <div class="panel console-panel">
+            <div class="panel-heading"><h2>Python build output</h2><button class="button ghost small" data-clear="pythonLog">Clear</button></div>
+            <pre id="pythonLog">Choose a Python project folder, then run preflight.</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-setup" class="view">
+        <div class="two-column">
+          <div class="panel form-panel">
+            <div class="panel-heading"><h2>Windows Setup Builder</h2><button id="checkSetupButton" class="button ghost small">Check tools</button></div>
+            <div id="setupPrereqs" class="prereq-row"></div>
+            <div class="split">
+              <label>Builder install scope
+                <select id="setupBootstrapScope">
+                  <option value="user">Current user</option>
+                  <option value="machine">All users / machine</option>
+                </select>
+              </label>
+              <label>Inno Setup prerequisite
+                <button id="installSetupPrereqButton" type="button" class="button ghost">Install Inno Setup</button>
+              </label>
+            </div>
+            <div class="callout compact">RP-R7 installs Inno Setup only after this explicit action. Keep the same stable AppId across releases: running a newer setup upgrades the application; rerunning the same setup repairs the installed core.</div>
+
+            <div class="split">
+              <label>Artifact type
+                <select id="setupArtifactKind">
+                  <option value="onefile">ONEFILE — single EXE</option>
+                  <option value="onedir">ONEDIR — application folder</option>
+                </select>
+              </label>
+              <label>Primary EXE <span class="muted">ONEDIR only; blank auto-detects one EXE</span>
+                <input id="setupPrimaryExe" type="text" autocomplete="off" placeholder="MyApplication.exe">
+              </label>
+            </div>
+
+            <label>Windows artifact
+              <div class="browse-row">
+                <input id="setupSource" type="text" autocomplete="off" placeholder="Choose an EXE or ONEDIR folder">
+                <button id="browseSetupSourceButton" type="button" class="button ghost">Browse</button>
+              </div>
+            </label>
+
+            <div class="split">
+              <label>Application name<input id="setupName" type="text" autocomplete="off" placeholder="MyApplication"></label>
+              <label>Version<input id="setupVersion" type="text" value="1.0.0" autocomplete="off"></label>
+            </div>
+            <label>Publisher<input id="setupPublisher" type="text" autocomplete="off" placeholder="Publisher name"></label>
+            <label>Stable AppId <span class="muted">keep this unchanged across updates</span><input id="setupAppId" type="text" autocomplete="off" placeholder="com.example.myapplication"></label>
+
+            <div class="split">
+              <label>Install mode
+                <select id="setupInstallMode">
+                  <option value="per-user">Per-user — no elevation required</option>
+                  <option value="per-machine">Per-machine — administrator rights required</option>
+                </select>
+              </label>
+              <label>Install folder name<input id="setupInstallDirName" type="text" autocomplete="off" placeholder="MyApplication"></label>
+            </div>
+
+            <label class="check-row"><input id="setupStartMenu" type="checkbox" checked><span>Create Start Menu shortcut</span></label>
+            <label class="check-row"><input id="setupDesktop" type="checkbox"><span>Create Desktop shortcut</span></label>
+            <label class="check-row"><input id="setupLaunchAfter" type="checkbox" checked><span>Offer to launch the application after installation</span></label>
+
+            <label>Setup icon<input id="setupIcon" type="file" accept="image/png,image/jpeg,image/webp,image/x-icon,.ico"></label>
+            <label>License file
+              <div class="browse-row"><input id="setupLicense" type="text" autocomplete="off"><button id="browseSetupLicenseButton" type="button" class="button ghost">Browse</button></div>
+            </label>
+            <label>Release notes / post-install info
+              <div class="browse-row"><input id="setupReleaseNotes" type="text" autocomplete="off"><button id="browseSetupNotesButton" type="button" class="button ghost">Browse</button></div>
+            </label>
+
+            <button id="buildSetupButton" class="button gold wide">Build Windows Setup</button>
+          </div>
+
+          <div class="panel console-panel">
+            <div class="panel-heading"><h2>Setup output</h2><button class="button ghost small" data-clear="setupLog">Clear</button></div>
+            <pre id="setupLog">Choose an already-built Windows artifact. RP-R7 uses Inno Setup and emits a release manifest for upgrade/repair/uninstall tracking.</pre>
           </div>
         </div>
       </section>
@@ -125,12 +278,14 @@
       </section>
 
       <section id="view-about" class="view">
-        <div class="panel prose">
-          <p class="eyebrow">INDEPENDENT PUBLIC BASELINE</p>
-          <h2>Rubra Packager RP-R4</h2>
-          <p>This repository focuses on reproducible packaging of trusted offline web games. It uses its own project registry, profile format, interface and modular build engine.</p>
-          <p>The current public scope is deliberately narrow: Windows one-file executables and Android debug APKs. Python-to-EXE, visual templates and broad framework source rewriting are not part of this project.</p>
-          <div class="callout">Only run npm build steps for projects you trust. Package scripts can execute code on your computer.</div>
+        <div class="panel prose about-panel">
+          <img class="about-logo" src="/brand-logo.png" alt="Rubra Packager">
+          <p class="eyebrow">v1.0.0 STABLE</p>
+          <h2>Package. Build. Deploy.</h2>
+          <p>Rubra Packager is a release workshop for trusted local projects: Web → Windows, Python → Windows, Web → Android, and Windows artifacts → Setup.</p>
+          <p>Built first for our own release workflow, Rubra Packager grew into a reusable desktop workshop for packaging trusted local projects.</p>
+          <img class="about-banner" src="/brand-banner.png" alt="Rubra Packager packaging workflow banner">
+          <div class="callout">Only enable npm or Python dependency installation for projects you trust. Package managers and build backends can execute code on your computer.</div>
         </div>
       </section>
     </main>
@@ -138,7 +293,7 @@
 
   <dialog id="projectDialog">
     <form method="dialog" id="projectForm">
-      <div class="dialog-heading"><h2>Add a project</h2><button value="cancel" class="icon-button" aria-label="Close">×</button></div>
+      <div class="dialog-heading"><h2>Add a web project</h2><button value="cancel" class="icon-button" aria-label="Close">×</button></div>
       <label>Source folder<div class="browse-row"><input id="projectSource" type="text" readonly><button id="browseSourceButton" type="button" class="button ghost">Browse</button></div></label>
       <div class="split"><label>Project ID<input id="projectId" type="text" required></label><label>Display name<input id="projectName" type="text" required></label></div>
       <label>Profile<select id="projectProfile"></select></label>

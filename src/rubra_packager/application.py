@@ -20,6 +20,8 @@ import webview
 
 from . import __version__
 from .build_android import AndroidBuilder
+from .build_python import PythonBuilder
+from .build_setup import SetupBuilder
 from .build_windows import WindowsBuilder
 from .config import APP_NAME, reports_dir
 from .io_utils import atomic_write_json
@@ -27,10 +29,28 @@ from .models import ProjectRecord
 from .preflight import run_preflight
 from .profiles import ProfileRegistry
 from .project_store import ProjectStore
-from .security import ValidationError, require_existing_dir, safe_identifier
+from .python_preflight import run_python_preflight
+from .runtime_engine import ensure_build_runtime, runtime_status
+from .security import ValidationError, confine, require_existing_dir, safe_filename_stem, safe_identifier
 from .source import locate_static_output
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+
+def _required_folder_value(data: dict[str, object], key: str, label: str) -> Path:
+    raw = str(data.get(key, "")).strip()
+    if not raw:
+        raise ValidationError(f"{label} is required")
+    return require_existing_dir(raw, label)
+
+
+def _string_list(data: dict[str, object], key: str, label: str) -> list[str]:
+    value = data.get(key, [])
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValidationError(f"{label} must be a list")
+    return [str(item).strip() for item in value if str(item).strip()]
 
 
 class Runtime:
@@ -50,7 +70,7 @@ class Runtime:
 
 class Handler(BaseHTTPRequestHandler):
     runtime: Runtime
-    server_version = "RubraPackager/0.4"
+    server_version = "RubraPackager/1.0-rc3"
     max_body = 72 * 1024 * 1024
 
     def log_message(self, format: str, *args: object) -> None:
@@ -97,7 +117,15 @@ class Handler(BaseHTTPRequestHandler):
 
     def _serve_static(self, request_path: str) -> None:
         relative = "index.html" if request_path in {"/", "/index.html"} else request_path.lstrip("/")
-        if relative not in {"index.html", "app.css", "app.js"}:
+        allowed_static = {
+            "index.html",
+            "app.css",
+            "app.js",
+            "brand-mark.png",
+            "brand-logo.png",
+            "brand-banner.png",
+        }
+        if relative not in allowed_static:
             self.send_error(404)
             return
         path = STATIC_DIR / relative
@@ -140,6 +168,10 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"success": True, "profiles": profiles})
             elif endpoint == "android/prerequisites":
                 self.send_json({"success": True, "prerequisites": AndroidBuilder.prerequisites()})
+            elif endpoint == "python/prerequisites":
+                self.send_json({"success": True, "prerequisites": PythonBuilder.prerequisites()})
+            elif endpoint == "setup/prerequisites":
+                self.send_json({"success": True, "prerequisites": SetupBuilder.prerequisites()})
             else:
                 self.send_json({"success": False, "error": "Unknown endpoint"}, 404)
         except Exception as exc:
@@ -159,9 +191,51 @@ class Handler(BaseHTTPRequestHandler):
                 root = tk.Tk()
                 root.withdraw()
                 root.attributes("-topmost", True)
-                selected = filedialog.askdirectory(title="Choose a web project folder", initialdir=str(Path.home()))
+                selected = filedialog.askdirectory(title="Choose a project folder", initialdir=str(Path.home()))
                 root.destroy()
-                self.send_json({"success": bool(selected), "path": selected})
+                self.send_json({"success": True, "path": selected})
+                return
+            if endpoint == "dialog/file":
+                purpose = str(data.get("purpose", "")).strip().lower()
+                filetypes = {
+                    "setup-exe": [("Windows executables", "*.exe")],
+                    "license": [("Text files", "*.txt"), ("Markdown files", "*.md"), ("Rich text files", "*.rtf"), ("All files", "*.*")],
+                    "release-notes": [("Text files", "*.txt"), ("Markdown files", "*.md"), ("Rich text files", "*.rtf"), ("All files", "*.*")],
+                }.get(purpose)
+                if filetypes is None:
+                    raise ValidationError("Unsupported file dialog purpose")
+                root = tk.Tk()
+                root.withdraw()
+                root.attributes("-topmost", True)
+                selected = filedialog.askopenfilename(
+                    title={
+                        "setup-exe": "Choose Windows executable",
+                        "license": "Choose license file",
+                        "release-notes": "Choose release notes file",
+                    }[purpose],
+                    initialdir=str(Path.home()),
+                    filetypes=filetypes,
+                )
+                root.destroy()
+                self.send_json({"success": True, "path": selected})
+                return
+            if endpoint == "dialog/python-entry":
+                project_root = _required_folder_value(data, "projectRoot", "Python project")
+                root = tk.Tk()
+                root.withdraw()
+                root.attributes("-topmost", True)
+                selected = filedialog.askopenfilename(
+                    title="Choose Python entry point",
+                    initialdir=str(project_root),
+                    filetypes=[("Python files", "*.py"), ("All files", "*.*")],
+                )
+                root.destroy()
+                if not selected:
+                    self.send_json({"success": True, "path": ""})
+                    return
+                selected_path = confine(project_root, Path(selected))
+                relative = selected_path.relative_to(project_root).as_posix()
+                self.send_json({"success": True, "path": relative})
                 return
             if endpoint == "projects/import":
                 source = require_existing_dir(str(data.get("sourcePath", "")), "project source")
@@ -196,6 +270,24 @@ class Handler(BaseHTTPRequestHandler):
                 atomic_write_json(report_path, report.to_dict())
                 self.send_json({"success": True, "report": report.to_dict(), "reportPath": str(report_path)})
                 return
+            if endpoint == "python/inspect":
+                project_root = _required_folder_value(data, "projectRoot", "Python project")
+                self.send_json({"success": True, "inspection": PythonBuilder.inspect(project_root)})
+                return
+            if endpoint == "python/preflight":
+                project_root = _required_folder_value(data, "projectRoot", "Python project")
+                report = run_python_preflight(
+                    project_root,
+                    entry_point=str(data.get("entryPoint", "")),
+                    dependency_mode=str(data.get("dependencyMode", "none")),
+                    hidden_imports=_string_list(data, "hiddenImports", "Hidden imports"),
+                    data_paths=_string_list(data, "dataPaths", "Additional data paths"),
+                    search_paths=_string_list(data, "searchPaths", "Search paths"),
+                )
+                report_path = reports_dir() / f"python-{safe_filename_stem(project_root.name)}-preflight.json"
+                atomic_write_json(report_path, report.to_dict())
+                self.send_json({"success": True, "report": report.to_dict(), "reportPath": str(report_path)})
+                return
             if endpoint == "build/windows":
                 project = self.runtime.store.get(str(data.get("projectId", "")))
                 profile = self.runtime.profiles.get(str(data.get("profileId", project.profile_id)))
@@ -206,6 +298,53 @@ class Handler(BaseHTTPRequestHandler):
                     variant_id=str(data.get("variantId", profile.default_variant)),
                     icon_data=str(data.get("iconData")) if data.get("iconData") else None,
                     allow_source_build=bool(data.get("allowSourceBuild", False)),
+                    version=project.version or "1.0.0",
+                    publisher=project.author or "",
+                    description=project.description or project.name,
+                )
+                self.send_json(result, 200 if result.get("success") else 500)
+                return
+            if endpoint == "build/python":
+                project_root = _required_folder_value(data, "projectRoot", "Python project")
+                result = PythonBuilder().build(
+                    project_root=project_root,
+                    app_name=str(data.get("appName", project_root.name)),
+                    entry_point=str(data.get("entryPoint", "")),
+                    bundle_mode=str(data.get("bundleMode", "onefile")),
+                    window_mode=str(data.get("windowMode", "windowed")),
+                    dependency_mode=str(data.get("dependencyMode", "none")),
+                    trust_dependency_install=bool(data.get("trustDependencyInstall", False)),
+                    icon_data=str(data.get("iconData")) if data.get("iconData") else None,
+                    hidden_imports=_string_list(data, "hiddenImports", "Hidden imports"),
+                    data_paths=_string_list(data, "dataPaths", "Additional data paths"),
+                    search_paths=_string_list(data, "searchPaths", "Search paths"),
+                    version=str(data.get("version", "1.0.0")),
+                    publisher=str(data.get("publisher", "")),
+                    description=str(data.get("description", "")),
+                )
+                self.send_json(result, 200 if result.get("success") else 500)
+                return
+            if endpoint == "setup/bootstrap":
+                result = SetupBuilder.bootstrap(scope=str(data.get("scope", "user")))
+                self.send_json(result, 200 if result.get("success") else 500)
+                return
+            if endpoint == "build/setup":
+                result = SetupBuilder().build(
+                    source_path=str(data.get("sourcePath", "")),
+                    artifact_kind=str(data.get("artifactKind", "onefile")),
+                    primary_exe=str(data.get("primaryExe", "")),
+                    app_name=str(data.get("appName", "")),
+                    version=str(data.get("version", "1.0.0")),
+                    publisher=str(data.get("publisher", "")),
+                    app_id=str(data.get("appId", "")),
+                    install_mode=str(data.get("installMode", "per-user")),
+                    install_dir_name=str(data.get("installDirName", "")),
+                    desktop_shortcut=bool(data.get("desktopShortcut", False)),
+                    start_menu_shortcut=bool(data.get("startMenuShortcut", True)),
+                    launch_after_install=bool(data.get("launchAfterInstall", True)),
+                    icon_data=str(data.get("iconData")) if data.get("iconData") else None,
+                    license_file=str(data.get("licenseFile", "")),
+                    release_notes_file=str(data.get("releaseNotesFile", "")),
                 )
                 self.send_json(result, 200 if result.get("success") else 500)
                 return
@@ -258,5 +397,14 @@ def launch(port: int = 0) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=APP_NAME)
     parser.add_argument("--port", type=int, default=0, help="Local UI port; 0 chooses an available port")
+    parser.add_argument("--prepare-runtime", action="store_true", help="Create/repair the private Python build runtime and exit")
+    parser.add_argument("--runtime-status", action="store_true", help="Print private build runtime status and exit")
     args = parser.parse_args()
+    if args.runtime_status:
+        print(json.dumps(runtime_status(), ensure_ascii=False, indent=2))
+        return
+    if args.prepare_runtime:
+        result = ensure_build_runtime()
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
     launch(args.port)

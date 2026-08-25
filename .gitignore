@@ -1,23 +1,77 @@
+# Python environments and caches
 .venv/
+venv/
+env/
 __pycache__/
 *.py[cod]
+*.egg-info/
+.eggs/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
+coverage.xml
 htmlcov/
+
+# Generated build / release output
 build/
 dist/
+release/
+release-*/
+release-smoke/
+_release_work/
+_self_build/
 *.spec
 *.exe
+*.msi
+*.whl
 *.apk
 *.aab
-*.keystore
-*.jks
+*.zip
+*.release.json
+SHA256SUMS.txt
+
+# Project-local dependency/build output
+node_modules/
 .gradle/
 android/.gradle/
 android/app/build/
-node_modules/
+android/build/
 local.properties
+
+# Signing material and local secrets
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.pfx
+*.p12
+*.key
+*.pem
+.signing/
+
+# Rubra Packager local/runtime state
 .rp-installed
+payload/
+reports/
+projects.json
+
+# Patch, recovery and backup leftovers
+*_backup_*/
+*_PRE_*/
+*.bak
+*.tmp
+*.temp
+*.old
+
+# Logs and diagnostics
 *.log
+RC*_SETUP_LOG.txt
+
+# IDE / OS noise
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
+Desktop.ini

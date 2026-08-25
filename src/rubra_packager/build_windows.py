@@ -15,6 +15,8 @@ from .process import run
 from .security import safe_filename_stem
 from .source import resolve_static_source
 from .staging import stage_source
+from .windows_metadata import write_version_file
+from .runtime_engine import build_python_executable, ensure_build_runtime
 
 
 class WindowsBuilder:
@@ -27,6 +29,9 @@ class WindowsBuilder:
         variant_id: str,
         icon_data: str | None,
         allow_source_build: bool,
+        version: str = "1.0.0",
+        publisher: str = "",
+        description: str = "",
         output_dir: Path | None = None,
     ) -> dict[str, Any]:
         log: list[str] = []
@@ -53,6 +58,14 @@ class WindowsBuilder:
             icon_path = save_windows_ico(decode_data_uri(icon_data), work / "app.ico")
             log.append(f"Windows icon generated: {icon_path}")
 
+        try:
+            engine_python = build_python_executable()
+        except RuntimeError:
+            log.append("Preparing the private Rubra Packager build runtime...")
+            prepared = ensure_build_runtime()
+            log.extend(str(line) for line in prepared.get("log", []))
+            engine_python = build_python_executable()
+
         target_dir = (output_dir or default_output_dir()).resolve()
         target_dir.mkdir(parents=True, exist_ok=True)
         dist = work / "dist"
@@ -62,13 +75,22 @@ class WindowsBuilder:
                 shutil.rmtree(path)
         name = safe_filename_stem(app_name)
         separator = ";" if sys.platform == "win32" else ":"
+        version_file = write_version_file(
+            work / "version_info.txt",
+            app_name=app_name,
+            version=version,
+            publisher=publisher,
+            description=description,
+            original_filename=f"{name}.exe",
+        )
         args = [
-            sys.executable, "-m", "PyInstaller",
+            engine_python, "-m", "PyInstaller",
             "--noconfirm", "--clean", "--onefile", "--windowed", "--noupx",
             f"--name={name}",
             f"--distpath={dist}",
             f"--workpath={build}",
             f"--specpath={work}",
+            f"--version-file={version_file}",
             "--hidden-import=webview",
             "--hidden-import=webview.js",
             f"--add-data={stage}{separator}_web",
@@ -76,7 +98,7 @@ class WindowsBuilder:
         if icon_path:
             args.append(f"--icon={icon_path}")
         args.append(str(launcher))
-        log.append("Running PyInstaller through the active Python environment")
+        log.append(f"Running PyInstaller through build runtime: {engine_python}")
         result = run(args, cwd=work)
         log.extend(line for line in (result.stdout + "\n" + result.stderr).splitlines()[-160:] if line.strip())
         if result.returncode != 0:
@@ -94,6 +116,8 @@ class WindowsBuilder:
             "sha256": sha256_file(published),
             "profile": profile.profile_id,
             "variant": variant.variant_id,
+            "version": version,
+            "publisher": publisher,
             "includedFiles": len(included),
             "excludedFiles": len(excluded),
             "preflight": report.to_dict(),

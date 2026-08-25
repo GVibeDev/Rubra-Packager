@@ -1,2 +1,5 @@
 [console_scripts]
 rubra-packager = rubra_packager.__main__:main
+
+[gui_scripts]
+rubra-packager-gui = rubra_packager.__main__:main
